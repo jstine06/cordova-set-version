@@ -14,15 +14,17 @@ const DefaultConfigPath = './config.xml';
  * @param {string} [configPath]
  * @param {string} [version]
  * @param {number} [buildNumber]
+ * @param {string} [id]
  */
 async function cordovaSetVersion(...args) {
-    let [configPath, version, buildNumber] = parseArguments(...args);
+    let [configPath, version, buildNumber, id] = parseArguments(...args);
 
     configPath = configPath || DefaultConfigPath;
     version = version || null;
     buildNumber = buildNumber || null;
+    id = id || null;
 
-    checkTypeErrors(configPath, version, buildNumber);
+    checkTypeErrors(configPath, version, buildNumber, id);
 
     let xml = await getXml(configPath);
 
@@ -30,7 +32,7 @@ async function cordovaSetVersion(...args) {
         version = await getVersionFromPackage(version);
     }
 
-    xml = setAttributes(xml, version, buildNumber);
+    xml = setAttributes(xml, version, buildNumber, id);
 
     const newData = xmlBuilder.buildObject(xml);
     return writeFile(configPath, newData, { encoding: 'UTF-8' });
@@ -77,7 +79,7 @@ function parse2Arguments(arg1, arg2) {
     return [arg1, arg2, null];
 }
 
-function checkTypeErrors(configPath, version, buildNumber) {
+function checkTypeErrors(configPath, version, buildNumber, id) {
     if (typeof configPath !== 'string') {
         throw TypeError('"configPath" argument must be a string');
     }
@@ -92,6 +94,10 @@ function checkTypeErrors(configPath, version, buildNumber) {
 
     if (buildNumber && buildNumber !== parseInt(buildNumber, 10)) {
         throw TypeError('"buildNumber" argument must be an integer');
+    }
+
+    if (id && typeof id !== 'string') {
+        throw TypeError('"id" argument must be a string');
     }
 }
 
@@ -109,7 +115,7 @@ async function getVersionFromPackage() {
     return version;
 }
 
-function setAttributes(xml, version, buildNumber) {
+function setAttributes(xml, version, buildNumber, id) {
     const newXml = xml;
     const el = newXml.plugin ? 'plugin' : 'widget';
 
@@ -121,6 +127,10 @@ function setAttributes(xml, version, buildNumber) {
         newXml.widget.$['android-versionCode'] = buildNumber;
         newXml.widget.$['ios-CFBundleVersion'] = buildNumber;
         newXml.widget.$['osx-CFBundleVersion'] = buildNumber;
+    }
+
+    if (id) {
+        newXml[el].$.id = id;
     }
 
     return newXml;
